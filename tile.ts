@@ -15,6 +15,40 @@ interface Tile {
   isPushable(): boolean;
   draw(g: CanvasRenderingContext2D, x: number, y: number): void;
   moveHorizontal(dx: number): void;
+  isStony(): boolean;
+  isBoxy(): boolean;
+}
+
+interface FallingState {
+  isFalling(): boolean;
+  isResting(): boolean;
+  moveHorizontal(tile: Tile, dx: number): void;
+}
+class Falling implements FallingState {
+  isFalling() {
+    return true;
+  }
+  isResting() {
+    return false;
+  }
+  moveHorizontal(tile: Tile, dx: number) {}
+}
+class Resting implements FallingState {
+  isFalling() {
+    return false;
+  }
+  isResting() {
+    return true;
+  }
+  moveHorizontal(tile: Tile, dx: number) {
+    if (
+      map[playery][playerx + dx + dx].isAir() &&
+      !map[playery + 1][playerx + dx].isAir()
+    ) {
+      map[playery][playerx + dx + dx] = tile;
+      moveToTile(playerx + dx, playery);
+    }
+  }
 }
 
 let rawMap: RawTile[][] = [
@@ -86,6 +120,12 @@ class Air implements Tile {
   moveHorizontal(dx: number) {
     moveToTile(playerx + dx, playery);
   }
+  isStony() {
+    return false;
+  }
+  isBoxy() {
+    return false;
+  }
 }
 
 class Flux implements Tile {
@@ -138,6 +178,12 @@ class Flux implements Tile {
   moveHorizontal(dx: number) {
     moveToTile(playerx + dx, playery);
   }
+  isStony() {
+    return false;
+  }
+  isBoxy() {
+    return false;
+  }
 }
 
 class Unbreakable implements Tile {
@@ -188,6 +234,12 @@ class Unbreakable implements Tile {
     g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   }
   moveHorizontal(dx: number) {}
+  isStony() {
+    return false;
+  }
+  isBoxy() {
+    return false;
+  }
 }
 
 class Player implements Tile {
@@ -235,9 +287,16 @@ class Player implements Tile {
   }
   draw(g: CanvasRenderingContext2D, x: number, y: number) {}
   moveHorizontal(dx: number) {}
+  isStony() {
+    return false;
+  }
+  isBoxy() {
+    return false;
+  }
 }
 
 class Stone implements Tile {
+  constructor(private falling: FallingState) {}
   isAir() {
     return false;
   }
@@ -254,7 +313,7 @@ class Stone implements Tile {
     return true;
   }
   isFallingStone() {
-    return false;
+    return this.falling.isFalling();
   }
   isBox() {
     return false;
@@ -285,17 +344,21 @@ class Stone implements Tile {
     g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   }
   moveHorizontal(dx: number) {
-    if (
-      map[playery][playerx + dx + dx].isAir() &&
-      !map[playery + 1][playerx + dx].isAir()
-    ) {
-      map[playery][playerx + dx + dx] = this;
-      moveToTile(playerx + dx, playery);
-    }
+    this.falling.moveHorizontal(this, dx);
+  }
+  isStony() {
+    return true;
+  }
+  isBoxy() {
+    return false;
   }
 }
 
 class FallingStone implements Tile {
+  private falling: boolean;
+  constructor(falling: boolean) {
+    this.falling = falling;
+  }
   isAir() {
     return false;
   }
@@ -312,7 +375,7 @@ class FallingStone implements Tile {
     return false;
   }
   isFallingStone() {
-    return true;
+    return this.falling;
   }
   isBox() {
     return false;
@@ -342,7 +405,24 @@ class FallingStone implements Tile {
     g.fillStyle = "#0000cc";
     g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   }
-  moveHorizontal(dx: number) {}
+  moveHorizontal(dx: number) {
+    if (this.isFallingStone() === false) {
+      if (
+        map[playery][playerx + dx + dx].isAir() &&
+        !map[playery + 1][playerx + dx].isAir()
+      ) {
+        map[playery][playerx + dx + dx] = this;
+        moveToTile(playerx + dx, playery);
+      }
+    } else if (this.isFallingStone() === true) {
+    }
+  }
+  isStony() {
+    return true;
+  }
+  isBoxy() {
+    return false;
+  }
 }
 
 class Box implements Tile {
@@ -402,6 +482,12 @@ class Box implements Tile {
       moveToTile(playerx + dx, playery);
     }
   }
+  isStony() {
+    return false;
+  }
+  isBoxy() {
+    return true;
+  }
 }
 
 class FallingBox implements Tile {
@@ -452,6 +538,12 @@ class FallingBox implements Tile {
     g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   }
   moveHorizontal(dx: number) {}
+  isStony() {
+    return false;
+  }
+  isBoxy() {
+    return true;
+  }
 }
 
 class Key1 implements Tile {
@@ -505,6 +597,12 @@ class Key1 implements Tile {
     g.fillStyle = "#ffcc00";
     g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   }
+  isStony() {
+    return false;
+  }
+  isBoxy() {
+    return false;
+  }
 }
 
 class Lock1 implements Tile {
@@ -555,6 +653,12 @@ class Lock1 implements Tile {
     g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   }
   moveHorizontal(dx: number) {}
+  isStony() {
+    return false;
+  }
+  isBoxy() {
+    return false;
+  }
 }
 
 class Key2 implements Tile {
@@ -608,6 +712,12 @@ class Key2 implements Tile {
     removeLock1();
     moveToTile(playerx + dx, playery);
   }
+  isStony() {
+    return false;
+  }
+  isBoxy() {
+    return false;
+  }
 }
 
 class Lock2 implements Tile {
@@ -658,4 +768,10 @@ class Lock2 implements Tile {
     g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   }
   moveHorizontal(dx: number) {}
+  isStony() {
+    return false;
+  }
+  isBoxy() {
+    return false;
+  }
 }
