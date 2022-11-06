@@ -2,14 +2,6 @@ const TILE_SIZE = 30;
 const FPS = 30;
 const SLEEP = 1000 / FPS;
 
-interface Input {
-  isRight(): boolean;
-  isLeft(): boolean;
-  isUp(): boolean;
-  isDown(): boolean;
-  handle(): void;
-}
-
 let playerx = 1;
 let playery = 1;
 let map: Tile[][];
@@ -87,26 +79,7 @@ function moveToTile(newx: number, newy: number) {
 }
 
 function moveHorizontal(dx: number) {
-  if (
-    map[playery][playerx + dx].isFlux() ||
-    map[playery][playerx + dx].isAir()
-  ) {
-    moveToTile(playerx + dx, playery);
-  } else if (
-    (map[playery][playerx + dx].isStone() ||
-      map[playery][playerx + dx].isBox()) &&
-    map[playery][playerx + dx + dx].isAir() &&
-    !map[playery + 1][playerx + dx].isAir()
-  ) {
-    map[playery][playerx + dx + dx] = map[playery][playerx + dx];
-    moveToTile(playerx + dx, playery);
-  } else if (map[playery][playerx + dx].isKey1()) {
-    removeLock1();
-    moveToTile(playerx + dx, playery);
-  } else if (map[playery][playerx + dx].isKey2) {
-    removeLock2();
-    moveToTile(playerx + dx, playery);
-  }
+  map[playery][playerx + dx].moveHorizontal(dx);
 }
 
 function moveVertical(dy: number) {
@@ -133,77 +106,6 @@ function handleInputs() {
   while (inputs.length > 0) {
     let input = inputs.pop();
     input.handle();
-  }
-}
-
-class Right implements Input {
-  isRight() {
-    return true;
-  }
-  isLeft() {
-    return false;
-  }
-  isUp() {
-    return false;
-  }
-  isDown() {
-    return false;
-  }
-  handle() {
-    moveHorizontal(1);
-  }
-}
-
-class Left implements Input {
-  isRight() {
-    return false;
-  }
-  isLeft() {
-    return true;
-  }
-  isUp() {
-    return false;
-  }
-  isDown() {
-    return false;
-  }
-  handle() {
-    moveHorizontal(-1);
-  }
-}
-
-class Down implements Input {
-  isRight() {
-    return false;
-  }
-  isLeft() {
-    return false;
-  }
-  isUp() {
-    return false;
-  }
-  isDown() {
-    return true;
-  }
-  handle() {
-    moveVertical(1);
-  }
-}
-class Up implements Input {
-  isRight() {
-    return false;
-  }
-  isLeft() {
-    return false;
-  }
-  isUp() {
-    return true;
-  }
-  isDown() {
-    return false;
-  }
-  handle(): void {
-    moveVertical(-1);
   }
 }
 
@@ -251,23 +153,9 @@ function createGraphics() {
 function drawMap(g: CanvasRenderingContext2D) {
   for (let y = 0; y < map.length; y++) {
     for (let x = 0; x < map[y].length; x++) {
-      colorOfTile(g, x, y);
-
-      if (!map[y][x].isAir() && !map[y][x].isPlayer())
-        g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      map[y][x].draw(g, x, y);
     }
   }
-}
-
-function colorOfTile(g: CanvasRenderingContext2D, x: number, y: number) {
-  if (map[y][x].isFlux()) g.fillStyle = "#ccffcc";
-  else if (map[y][x].isUnbreakable()) g.fillStyle = "#999999";
-  else if (map[y][x].isStone() || map[y][x].isFallingStone())
-    g.fillStyle = "#0000cc";
-  else if (map[y][x].isBox() || map[y][x].isFallingBox())
-    g.fillStyle = "#8b4513";
-  else if (map[y][x].isKey1() || map[y][x].isLock1()) g.fillStyle = "#ffcc00";
-  else if (map[y][x].isKey2() || map[y][x].isLock2()) g.fillStyle = "#00ccff";
 }
 
 function drawPlayer(g: CanvasRenderingContext2D) {
